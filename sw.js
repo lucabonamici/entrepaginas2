@@ -8,7 +8,19 @@ self.addEventListener('install',  () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(clients.claim().then(() => reschedule())));
 
 /* ─── Mensagens da app principal ─── */
-self.addEventListener('message', async e => {
+self.addEventListener('message', e => {
+  e.waitUntil((async () => {
+    const { type, highlights, prefs } = e.data || {};
+    if (type === 'SYNC') {
+      if (highlights !== undefined) await store('highlights', highlights);
+      if (prefs      !== undefined) await store('prefs', prefs);
+      await reschedule();
+    }
+    if (type === 'TEST') {
+      await sendHighlight();
+    }
+  })());
+});
   const { type, highlights, prefs } = e.data || {};
   if (type === 'SYNC') {
     if (highlights !== undefined) await store('highlights', highlights);
