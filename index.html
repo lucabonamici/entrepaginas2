@@ -7,6 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;0,700;1,300;1,500&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Entre Páginas" />
+  <meta name="theme-color" content="#92400E" />
   <!-- Firebase SDK (compat — no import statements needed) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -972,6 +977,92 @@
       font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-left: 6px;
     }
 
+    /* ─── Notification Settings Modal ─── */
+    .notif-modal { max-width: 440px; }
+    .notif-section { margin-bottom: 24px; }
+    .notif-section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--fg-muted);
+      margin-bottom: 12px;
+    }
+    .notif-toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+    }
+    .notif-toggle-label { font-size: 15px; font-weight: 600; }
+    .notif-toggle-sub   { font-size: 13px; color: var(--fg-muted); margin-top: 2px; }
+    /* Toggle switch */
+    .toggle-switch {
+      position: relative; width: 44px; height: 26px; flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--border); border-radius: 13px;
+      cursor: pointer; transition: background var(--transition);
+    }
+    .toggle-track::after {
+      content: ''; position: absolute;
+      left: 3px; top: 3px;
+      width: 20px; height: 20px;
+      border-radius: 50%; background: #fff;
+      transition: transform var(--transition);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+
+    .notif-times { display: flex; gap: 12px; }
+    .notif-time-block { flex: 1; }
+    .notif-time-label { font-size: 12px; color: var(--fg-muted); font-weight: 600; margin-bottom: 6px; }
+    .notif-time-input {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid var(--border); border-radius: var(--r-md);
+      background: var(--surface); color: var(--fg);
+      font-family: var(--font-body); font-size: 17px;
+      outline: none; text-align: center;
+      transition: border-color var(--transition);
+    }
+    .notif-time-input:focus { border-color: var(--accent-warm); }
+
+    .notif-status-box {
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 12px 14px;
+      font-size: 13.5px; color: var(--fg-muted); line-height: 1.5;
+    }
+    .notif-status-box.ok  { border-color: #34D399; background: #F0FDF4; color: #065F46; }
+    .notif-status-box.warn{ border-color: var(--accent-warm); background: var(--accent-light); color: var(--accent); }
+    [data-theme="dark"] .notif-status-box.ok   { background: #064E3B; color: #6EE7B7; }
+    [data-theme="dark"] .notif-status-box.warn { background: var(--accent-light); }
+
+    .hosting-steps {
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 14px 16px;
+      font-size: 13px; color: var(--fg-muted); line-height: 1.7;
+    }
+    .hosting-steps strong { color: var(--fg); font-weight: 700; }
+    .hosting-steps code {
+      background: var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: monospace;
+      color: var(--fg);
+    }
+    .btn-test-notif {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 18px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-xl);
+      font-size: 14px; font-weight: 600;
+      color: var(--fg-muted); background: var(--surface);
+      transition: all var(--transition);
+    }
+    .btn-test-notif:hover { border-color: var(--accent-warm); color: var(--fg); background: var(--accent-light); }
+
+    /* Bell icon active state */
+    .icon-btn.notif-active { color: var(--accent); }
+    .icon-btn.notif-active svg { fill: var(--accent); }
+
     /* ─── Custom Book Modal ─── */
     .custom-modal {
       width: 92%; max-width: 640px;
@@ -1179,6 +1270,9 @@
           <div class="sync-dot" id="sync-dot"></div>
           <span class="sync-label" id="sync-label">Offline</span>
         </div>
+        <button class="icon-btn" onclick="openNotifModal()" title="Notificações diárias" id="notif-btn" aria-label="Notificações">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
         <button class="icon-btn" onclick="toggleDark()" title="Toggle dark mode" id="theme-btn" aria-label="Toggle dark mode">
           <svg id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           <svg id="theme-icon-sun" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -1300,6 +1394,82 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Book
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NOTIFICATION SETTINGS MODAL ═══ -->
+<div class="modal-overlay" id="notif-modal">
+  <div class="modal notif-modal">
+    <div class="custom-modal-header">
+      <h2>Notificações Diárias</h2>
+      <button class="modal-close-btn" onclick="closeNotifModal()" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="padding:20px 28px 24px;display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Status -->
+      <div id="notif-status-box" class="notif-status-box"></div>
+
+      <!-- Enable toggle -->
+      <div class="notif-section">
+        <div class="notif-section-title">Ativar notificações</div>
+        <div class="notif-toggle-row">
+          <div>
+            <div class="notif-toggle-label">Highlight do dia</div>
+            <div class="notif-toggle-sub">Recebe 2 highlights aleatórios por dia</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notif-enabled" onchange="saveNotifPrefs()" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Times -->
+      <div class="notif-section">
+        <div class="notif-section-title">Horários</div>
+        <div class="notif-times">
+          <div class="notif-time-block">
+            <div class="notif-time-label">Manhã</div>
+            <input type="time" class="notif-time-input" id="notif-time-1" value="09:00" onchange="saveNotifPrefs()" />
+          </div>
+          <div class="notif-time-block">
+            <div class="notif-time-label">Noite</div>
+            <input type="time" class="notif-time-input" id="notif-time-2" value="21:00" onchange="saveNotifPrefs()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Test -->
+      <div class="notif-section">
+        <div class="notif-section-title">Testar</div>
+        <button class="btn-test-notif" onclick="testNotification()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Enviar notificação de teste
+        </button>
+      </div>
+
+      <!-- Hosting instructions -->
+      <div class="notif-section" id="hosting-instructions" style="display:none">
+        <div class="notif-section-title">⚠️ Necessário: publicar a app</div>
+        <div class="hosting-steps">
+          <strong>Para receber notificações no telefone, a app precisa estar online.</strong><br>
+          Como já tens Firebase configurado, demora 3 comandos:<br><br>
+          1. Instala as ferramentas: <code>npm install -g firebase-tools</code><br>
+          2. Login: <code>firebase login</code><br>
+          3. Na pasta da app: <code>firebase init hosting</code><br>
+          &nbsp;&nbsp;&nbsp;→ Projeto: <strong>wethink-b228c</strong><br>
+          &nbsp;&nbsp;&nbsp;→ Diretório público: <code>.</code> (ponto)<br>
+          &nbsp;&nbsp;&nbsp;→ SPA: <strong>Yes</strong><br>
+          &nbsp;&nbsp;&nbsp;→ Não sobrescrever index.html<br>
+          4. Publicar: <code>firebase deploy</code><br><br>
+          A app fica em <strong>https://wethink-b228c.web.app</strong><br>
+          Abre no telefone → Safari/Chrome → <strong>"Adicionar ao ecrã inicial"</strong>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1591,6 +1761,9 @@ function loadState() {
 function saveBooks() {
   localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
   scheduleSyncToFirestore();
+  /* keep Service Worker highlight cache in sync (debounced) */
+  clearTimeout(saveBooks._swTimer);
+  saveBooks._swTimer = setTimeout(syncHighlightsToSW, 1500);
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2496,6 +2669,185 @@ document.getElementById('custom-modal').addEventListener('click', e => {
 document.getElementById('add-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('add-modal')) closeModal();
 });
+
+/* ═══════════════════════════════════════════════════
+   PUSH NOTIFICATIONS — Service Worker + Modal logic
+═══════════════════════════════════════════════════ */
+
+/* ─── Register Service Worker ─── */
+let _swReg = null;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    _swReg = reg;
+    console.log('[SW] registered', reg.scope);
+    /* sync current highlights + prefs whenever SW activates */
+    navigator.serviceWorker.ready.then(() => syncHighlightsToSW());
+  }).catch(err => console.warn('[SW] registration failed', err));
+}
+
+/* ─── Collect all highlights across all books ─── */
+function getAllHighlightsForSW() {
+  const all = [];
+  books.forEach(b => {
+    if (!b.highlights?.length) return;
+    b.highlights.forEach(h => {
+      const hl = normalizeHL(h);
+      if (hl.text) all.push({ text: hl.text, bookTitle: b.title, bookId: b.id });
+    });
+  });
+  return all;
+}
+
+/* ─── Send highlights + prefs to Service Worker ─── */
+function syncHighlightsToSW() {
+  if (!navigator.serviceWorker?.controller) return;
+  const prefs = loadNotifPrefs();
+  const highlights = getAllHighlightsForSW();
+  navigator.serviceWorker.controller.postMessage({
+    type: 'SYNC',
+    highlights,
+    prefs,
+  });
+}
+
+/* ─── Load/save notification prefs from localStorage ─── */
+function loadNotifPrefs() {
+  try {
+    return JSON.parse(localStorage.getItem('ep_notif_prefs') || 'null') || {
+      enabled: false,
+      times: ['09:00', '21:00'],
+    };
+  } catch { return { enabled: false, times: ['09:00', '21:00'] }; }
+}
+function saveNotifPrefs() {
+  const enabled = document.getElementById('notif-enabled').checked;
+  const t1 = document.getElementById('notif-time-1').value || '09:00';
+  const t2 = document.getElementById('notif-time-2').value || '21:00';
+  const prefs = { enabled, times: [t1, t2] };
+  localStorage.setItem('ep_notif_prefs', JSON.stringify(prefs));
+  syncHighlightsToSW();
+  updateNotifBell(enabled);
+  updateNotifStatusBox();
+}
+
+/* ─── Update bell icon active state ─── */
+function updateNotifBell(enabled) {
+  const btn = document.getElementById('notif-btn');
+  if (!btn) return;
+  btn.classList.toggle('notif-active', !!enabled);
+}
+
+/* ─── Status box inside the modal ─── */
+async function updateNotifStatusBox() {
+  const box = document.getElementById('notif-status-box');
+  if (!box) return;
+  const perm = Notification?.permission || 'default';
+  const swOk = !!navigator.serviceWorker?.controller;
+  const prefs = loadNotifPrefs();
+
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+    box.className = 'notif-status-box warn';
+    box.textContent = '⚠ O teu browser não suporta notificações push.';
+    return;
+  }
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    box.className = 'notif-status-box warn';
+    box.textContent = '⚠ As notificações precisam de HTTPS. Faz deploy para o Firebase Hosting (ver instruções abaixo).';
+    return;
+  }
+  if (perm === 'denied') {
+    box.className = 'notif-status-box warn';
+    box.textContent = '🚫 Permissão negada. Vai às definições do browser e permite notificações para este site.';
+    return;
+  }
+  if (!swOk) {
+    box.className = 'notif-status-box warn';
+    box.textContent = '⏳ Service Worker ainda a registar… recarrega a página.';
+    return;
+  }
+  if (!prefs.enabled) {
+    box.className = 'notif-status-box';
+    box.textContent = 'Ativa o toggle para começar a receber highlights.';
+    return;
+  }
+  if (perm !== 'granted') {
+    box.className = 'notif-status-box warn';
+    box.textContent = '⚠ Precisas de autorizar notificações — clica em "Testar notificação".';
+    return;
+  }
+  box.className = 'notif-status-box ok';
+  box.textContent = `✓ Ativo — highlights às ${prefs.times[0] || '09:00'} e ${prefs.times[1] || '21:00'}.`;
+}
+
+/* ─── Open / close modal ─── */
+function openNotifModal() {
+  const prefs = loadNotifPrefs();
+  document.getElementById('notif-enabled').checked = !!prefs.enabled;
+  document.getElementById('notif-time-1').value = prefs.times?.[0] || '09:00';
+  document.getElementById('notif-time-2').value = prefs.times?.[1] || '21:00';
+  updateNotifBell(prefs.enabled);
+  updateNotifStatusBox();
+
+  /* show/hide hosting instructions based on protocol */
+  const hostingSection = document.getElementById('hosting-instructions');
+  if (hostingSection) {
+    hostingSection.style.display =
+      (location.protocol === 'https:' || location.hostname === 'localhost') ? 'none' : '';
+  }
+
+  document.getElementById('notif-modal').classList.add('open');
+}
+function closeNotifModal() {
+  document.getElementById('notif-modal').classList.remove('open');
+}
+document.getElementById('notif-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('notif-modal')) closeNotifModal();
+});
+
+/* ─── Test notification ─── */
+async function testNotification() {
+  if (!('Notification' in window)) {
+    toast('O teu browser não suporta notificações.', 'error'); return;
+  }
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    toast('Precisas de HTTPS. Faz deploy para o Firebase Hosting primeiro.', 'error'); return;
+  }
+
+  let perm = Notification.permission;
+  if (perm === 'default') {
+    perm = await Notification.requestPermission();
+  }
+  if (perm !== 'granted') {
+    toast('Permissão negada — permite notificações nas definições do browser.', 'error');
+    updateNotifStatusBox();
+    return;
+  }
+
+  /* make sure SW has fresh data */
+  syncHighlightsToSW();
+
+  /* wait a tick for SW controller to be ready */
+  await new Promise(r => setTimeout(r, 300));
+
+  const ctrl = navigator.serviceWorker?.controller;
+  if (!ctrl) {
+    /* fallback: show a plain Notification if SW not ready */
+    new Notification('Entre Páginas', { body: 'Service Worker ainda a arrancar. Recarrega e tenta de novo.', icon: '/icon-192.png' });
+    return;
+  }
+
+  const highlights = getAllHighlightsForSW();
+  if (!highlights.length) {
+    toast('Ainda não tens highlights! Importa um ficheiro Kindle primeiro.', 'error'); return;
+  }
+
+  ctrl.postMessage({ type: 'TEST' });
+  toast('Notificação de teste enviada!', 'success');
+  updateNotifStatusBox();
+}
+
+/* ─── Init bell state on load ─── */
+updateNotifBell(loadNotifPrefs().enabled);
 
 /* ═══════════════════════════════════════════════════
    INIT

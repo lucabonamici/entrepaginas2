@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Generate Icons</title></head>
+<body>
+<p>A gerar ícones… Os downloads iniciam automaticamente.</p>
+<canvas id="c"></canvas>
+<script>
+function drawIcon(size) {
+  const c = document.getElementById('c');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const r = size * 0.14;
+
+  /* background */
+  ctx.fillStyle = '#92400E';
+  roundRect(ctx, 0, 0, size, size, r);
+  ctx.fill();
+
+  /* open book */
+  ctx.strokeStyle = '#FEF3C7';
+  ctx.lineWidth = size * 0.055;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const cx = size / 2, cy = size / 2;
+  const bw = size * 0.58, bh = size * 0.46;
+  const x0 = cx - bw / 2, x1 = cx + bw / 2, y0 = cy - bh / 2, y1 = cy + bh / 2;
+
+  /* left page */
+  ctx.beginPath();
+  ctx.moveTo(cx, y0 + size * 0.04);
+  ctx.quadraticCurveTo(x0 + bw * 0.1, y0, x0, y0);
+  ctx.lineTo(x0, y1);
+  ctx.quadraticCurveTo(x0 + bw * 0.1, y1, cx, y1 - size * 0.04);
+  ctx.stroke();
+
+  /* right page */
+  ctx.beginPath();
+  ctx.moveTo(cx, y0 + size * 0.04);
+  ctx.quadraticCurveTo(x1 - bw * 0.1, y0, x1, y0);
+  ctx.lineTo(x1, y1);
+  ctx.quadraticCurveTo(x1 - bw * 0.1, y1, cx, y1 - size * 0.04);
+  ctx.stroke();
+
+  /* spine */
+  ctx.beginPath();
+  ctx.moveTo(cx, y0 + size * 0.04);
+  ctx.lineTo(cx, y1 - size * 0.04);
+  ctx.stroke();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function download(size, name) {
+  drawIcon(size);
+  const a = document.createElement('a');
+  a.download = name;
+  a.href = document.getElementById('c').toDataURL('image/png');
+  a.click();
+}
+
+setTimeout(() => download(192, 'icon-192.png'), 500);
+setTimeout(() => download(512, 'icon-512.png'), 1500);
+setTimeout(() => download(72,  'icon-72.png'),  2500);
+</script>
+</body>
+</html>
