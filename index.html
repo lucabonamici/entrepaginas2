@@ -7,6 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;0,700;1,300;1,500&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+  <!-- Firebase SDK (compat — no import statements needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
   <style>
     /* ─── Design Tokens ─── */
     :root {
@@ -141,6 +145,35 @@
     }
     .icon-btn:hover { background: var(--bg-alt); color: var(--fg); }
     .icon-btn svg { width: 18px; height: 18px; }
+
+    /* Cloud sync status */
+    .sync-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--fg-muted);
+      padding: 0 4px;
+    }
+    .sync-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--border); flex-shrink: 0;
+      transition: background 0.4s;
+    }
+    .sync-dot.syncing { background: var(--accent-warm); animation: blink 1s ease-in-out infinite; }
+    .sync-dot.synced  { background: #34D399; }
+    .sync-dot.error   { background: var(--danger); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .sync-label { display: none; }
+    @media (min-width: 640px) { .sync-label { display: inline; } }
+
+    /* Firebase setup banner */
+    .firebase-banner {
+      background: #FEF3C7; border-bottom: 1px solid #F59E0B;
+      padding: 10px 24px; font-size: 13.5px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    [data-theme="dark"] .firebase-banner { background: #2C200A; border-color: #92400E; color: #FDE68A; }
+    .firebase-banner strong { font-weight: 700; }
+    .firebase-banner a { color: var(--accent); font-weight: 600; text-decoration: underline; cursor: pointer; }
+    .firebase-banner svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--accent-warm); }
 
     /* ─── Search View ─── */
     .search-hero {
@@ -1142,6 +1175,10 @@
         </button>
       </nav>
       <div class="header-actions">
+        <div class="sync-status" id="sync-status" title="Firebase sync status">
+          <div class="sync-dot" id="sync-dot"></div>
+          <span class="sync-label" id="sync-label">Offline</span>
+        </div>
         <button class="icon-btn" onclick="toggleDark()" title="Toggle dark mode" id="theme-btn" aria-label="Toggle dark mode">
           <svg id="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           <svg id="theme-icon-sun" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -1150,6 +1187,13 @@
     </div>
   </div>
 </header>
+
+<!-- ═══ FIREBASE SETUP BANNER (hidden once configured) ═══ -->
+<div class="firebase-banner" id="firebase-banner" style="display:none">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <span><strong>Firebase not configured.</strong> Your books are saved locally only.
+  To sync across devices, <a onclick="showFirebaseHelp()">set up Firebase</a> — it takes 3 minutes.</span>
+</div>
 
 <!-- ═══ LIBRARY PAGE ═══ -->
 <div class="page active" id="page-library">
@@ -1368,6 +1412,137 @@
 
 <script>
 /* ═══════════════════════════════════════════════════
+   FIREBASE CONFIGURATION
+   ─────────────────────────────────────────────────
+   1. Go to https://console.firebase.google.com
+   2. Click "Add project", give it any name
+   3. In the project → click the </> web icon → register app
+   4. Copy the firebaseConfig object below and replace this one
+   5. Go to Build → Firestore Database → Create database
+      → choose "Start in test mode" → pick a region → Done
+═══════════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyCnxMhOy6l7PCnxSWoDgZBOuCPKh4Y4wNE",
+  authDomain:        "wethink-b228c.firebaseapp.com",
+  databaseURL:       "https://wethink-b228c-default-rtdb.firebaseio.com",
+  projectId:         "wethink-b228c",
+  storageBucket:     "wethink-b228c.firebasestorage.app",
+  messagingSenderId: "737673717851",
+  appId:             "1:737673717851:web:132ae25b44122d9bb9777e",
+  measurementId:     "G-RXQ3KZ4M1X",
+};
+
+/* ─── Firebase init (graceful — works without config too) ─── */
+let db = null;
+const FB_READY = firebaseConfig.apiKey !== 'YOUR_API_KEY';
+
+if (FB_READY) {
+  try {
+    const app = firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    firebase.analytics();                                   /* enable Analytics */
+    db.enablePersistence({ synchronizeTabs: true }).catch(() => {}); /* offline cache */
+  } catch(e) { console.warn('Firebase init error:', e); }
+}
+
+function setSyncStatus(state) {             /* 'idle'|'syncing'|'synced'|'error'|'offline' */
+  const dot   = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.className = 'sync-dot ' + (state === 'syncing' ? 'syncing' : state === 'synced' ? 'synced' : state === 'error' ? 'error' : '');
+  if (label) label.textContent =
+    state === 'syncing' ? 'Saving…' :
+    state === 'synced'  ? 'Saved'   :
+    state === 'error'   ? 'Error'   : 'Offline';
+}
+
+function showFirebaseHelp() {
+  alert(
+    'Firebase setup (3 minutes):\n\n' +
+    '1. Visit https://console.firebase.google.com\n' +
+    '2. Create a new project (any name)\n' +
+    '3. Click the </> icon → register a web app\n' +
+    '4. Copy the firebaseConfig shown and paste it\n' +
+    '   into index.html replacing the placeholder\n' +
+    '5. Build → Firestore Database → Create database\n' +
+    '   → Start in test mode → choose region → Done\n\n' +
+    'Your books will then sync automatically on every device.'
+  );
+}
+
+/* ─── Firestore helpers ─── */
+let _syncTimer = null;
+function scheduleSyncToFirestore() {
+  if (!db) return;
+  clearTimeout(_syncTimer);
+  setSyncStatus('syncing');
+  _syncTimer = setTimeout(async () => {
+    try {
+      /* Firestore batch limit = 500 ops; chunk if needed */
+      const books = state.books;
+      for (let i = 0; i < books.length; i += 400) {
+        const batch = db.batch();
+        books.slice(i, i + 400).forEach(b => {
+          batch.set(db.collection('books').doc(b.id), prepForFirestore(b));
+        });
+        await batch.commit();
+      }
+      setSyncStatus('synced');
+      setTimeout(() => setSyncStatus('idle'), 3000);
+    } catch(e) {
+      console.error('Firestore sync failed:', e);
+      setSyncStatus('error');
+    }
+  }, 1200);
+}
+
+function prepForFirestore(book) {
+  /* Firestore doesn't accept undefined values */
+  return JSON.parse(JSON.stringify(book));
+}
+
+async function deleteFromFirestore(bookId) {
+  if (!db) return;
+  try { await db.collection('books').doc(bookId).delete(); } catch(e) {}
+}
+
+async function loadBooksFromFirestore() {
+  if (!db) return false;
+  try {
+    setSyncStatus('syncing');
+    const snap = await db.collection('books').get();
+    /* ✅ If we reach here, connection is working */
+    toast('🟢 Firebase ligado e sincronizado', 'success');
+    if (snap.empty) {
+      /* Firestore empty — push localStorage books up if any */
+      if (state.books.length > 0) scheduleSyncToFirestore();
+      setSyncStatus('synced');
+      return false;
+    }
+    const remote = snap.docs.map(d => {
+      const data = d.data();
+      if (!data.highlights) data.highlights = [];
+      data.highlights = data.highlights.map(h =>
+        typeof h === 'string'
+          ? { text: h, type: 'highlight', color: 'manual', page: '', location: '', chapter: '', source: 'manual' }
+          : h
+      );
+      return data;
+    });
+    remote.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0));
+    state.books = remote;
+    localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
+    setSyncStatus('synced');
+    setTimeout(() => setSyncStatus('idle'), 3000);
+    return true;
+  } catch(e) {
+    console.error('Firestore load failed:', e);
+    setSyncStatus('error');
+    return false;
+  }
+}
+
+/* ═══════════════════════════════════════════════════
    STATE & STORAGE
 ═══════════════════════════════════════════════════ */
 let state = {
@@ -1383,11 +1558,11 @@ let state = {
 };
 
 function loadState() {
+  /* 1 — instant load from localStorage */
   try {
     const saved = localStorage.getItem('bookshelf_books');
     if (saved) {
       state.books = JSON.parse(saved);
-      /* migrate old string-array highlights to objects */
       state.books.forEach(b => {
         if (!b.highlights) b.highlights = [];
         b.highlights = b.highlights.map(h =>
@@ -1400,10 +1575,22 @@ function loadState() {
     const theme = localStorage.getItem('bookshelf_theme');
     if (theme === 'dark') { state.dark = true; applyTheme(); }
   } catch(e) {}
+
+  /* 2 — show setup banner if Firebase not configured */
+  if (!FB_READY) {
+    const banner = document.getElementById('firebase-banner');
+    if (banner) banner.style.display = 'flex';
+  } else {
+    /* 3 — async: load from Firestore, refresh UI when done */
+    loadBooksFromFirestore().then(loaded => {
+      if (loaded) { renderLibrary(); if (state.view === 'stats') renderStats(); }
+    });
+  }
 }
 
 function saveBooks() {
   localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
+  scheduleSyncToFirestore();
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2075,7 +2262,8 @@ function removeBook(id) {
   if (!confirm('Remove this book from your library?')) return;
   const book = state.books.find(b => b.id === id);
   state.books = state.books.filter(b => b.id !== id);
-  saveBooks();
+  localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
+  deleteFromFirestore(id);   /* explicit Firestore delete */
   toast(`"${book?.title}" removed`, '');
   goBack();
 }
@@ -2312,8 +2500,8 @@ document.getElementById('add-modal').addEventListener('click', e => {
 /* ═══════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════ */
-loadState();
-renderLibrary();
+loadState();        /* loads localStorage instantly, then fetches Firestore async */
+renderLibrary();    /* first paint from localStorage; Firestore will re-render if newer */
 </script>
 </body>
 </html>
