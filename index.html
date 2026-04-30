@@ -1718,11 +1718,62 @@ async function loadBooksFromFirestore() {
     localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
     setSyncStatus('synced');
     setTimeout(() => setSyncStatus('idle'), 3000);
+    setupRealtimeSync();
     return true;
   } catch(e) {
     console.error('Firestore load failed:', e);
     setSyncStatus('error');
     return false;
+  }
+}
+
+let _realtimeSyncSetup = false;
+
+function setupRealtimeSync() {
+  if (!db || _realtimeSyncSetup) return;
+  _realtimeSyncSetup = true;
+  console.log('[SYNC] Iniciando listener em tempo real...');
+  try {
+    db.collection('books').onSnapshot(
+      snap => {
+        try {
+          console.log('[SYNC] Snapshot recebido com', snap.docs.length, 'livros');
+          const remote = snap.docs.map(d => {
+            const data = d.data();
+            if (!data.highlights) data.highlights = [];
+            data.highlights = data.highlights.map(h =>
+              typeof h === 'string'
+                ? { text: h, type: 'highlight', color: 'manual', page: '', location: '', chapter: '', source: 'manual' }
+                : h
+            );
+            return data;
+          });
+          remote.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0));
+          const oldCount = state.books.length;
+          state.books = remote;
+          localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
+          console.log('[SYNC] Estado atualizado. Antes:', oldCount, 'Agora:', remote.length);
+          if (remote.length !== oldCount) {
+            renderLibrary();
+            if (state.view === 'stats') renderStats();
+            if (remote.length > oldCount) {
+              console.log('[SYNC] ✅ Novo livro sincronizado!');
+              toast(`📚 Novo livro sincronizado!`, 'success');
+            }
+          }
+        } catch (e) {
+          console.error('[SYNC] Erro ao processar snapshot:', e);
+        }
+      },
+      err => {
+        console.error('[SYNC] ❌ Erro de sincronização:', err);
+        if (err.code === 'permission-denied') {
+          toast('❌ Sem permissão. Verifica as regras do Firestore.', 'error');
+        }
+      }
+    );
+  } catch (e) {
+    console.error('[SYNC] Erro ao configurar listener:', e);
   }
 }
 
