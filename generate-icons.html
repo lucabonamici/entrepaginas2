@@ -1,9 +1,66 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Generate Icons</title></head>
+<head>
+  <meta charset="UTF-8">
+  <title>Gerar Ícones - Entre Páginas</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #FFFBEB;
+      color: #1C1713;
+    }
+    h2 { color: #92400E; }
+    .button-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #92400E;
+      color: #FFFBEB;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    button:hover { background: #D97706; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .status {
+      font-size: 14px;
+      min-width: 30px;
+    }
+    .done { color: #059669; font-weight: 600; }
+    small { color: #78716C; }
+  </style>
+</head>
 <body>
-<p>A gerar ícones… Os downloads iniciam automaticamente.</p>
-<canvas id="c"></canvas>
+<h2>🎨 Gerar Ícones - Entre Páginas</h2>
+<p>Clica em cada botão para descarregar os ícones PNG:</p>
+
+<div class="button-row">
+  <button onclick="downloadIcon(192, 'icon-192.png', this)">Descarregar 192×192</button>
+  <span class="status" id="status-192"></span>
+</div>
+
+<div class="button-row">
+  <button onclick="downloadIcon(512, 'icon-512.png', this)">Descarregar 512×512</button>
+  <span class="status" id="status-512"></span>
+</div>
+
+<div class="button-row">
+  <button onclick="downloadIcon(72, 'icon-72.png', this)">Descarregar 72×72</button>
+  <span class="status" id="status-72"></span>
+</div>
+
+<p><small>Depois de descarregar os 3 ficheiros, coloca-os na pasta <code>/entrepaginas2/</code> do teu repositório GitHub.</small></p>
+<canvas id="c" style="display:none"></canvas>
+
 <script>
 function drawIcon(size) {
   const c = document.getElementById('c');
@@ -63,17 +120,20 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function download(size, name) {
+function downloadIcon(size, name, btn) {
   drawIcon(size);
   const a = document.createElement('a');
   a.download = name;
   a.href = document.getElementById('c').toDataURL('image/png');
   a.click();
-}
 
-setTimeout(() => download(192, 'icon-192.png'), 500);
-setTimeout(() => download(512, 'icon-512.png'), 1500);
-setTimeout(() => download(72,  'icon-72.png'),  2500);
+  /* show status */
+  const statusId = 'status-' + size;
+  const status = document.getElementById(statusId);
+  status.textContent = '✓ Done';
+  status.classList.add('done');
+  btn.disabled = true;
+}
 </script>
 </body>
 </html>

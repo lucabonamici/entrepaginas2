@@ -21,16 +21,6 @@ self.addEventListener('message', e => {
     }
   })());
 });
-  const { type, highlights, prefs } = e.data || {};
-  if (type === 'SYNC') {
-    if (highlights !== undefined) await store('highlights', highlights);
-    if (prefs      !== undefined) await store('prefs', prefs);
-    await reschedule();
-  }
-  if (type === 'TEST') {
-    await sendHighlight();
-  }
-});
 
 /* ─── Cache API como key-value store ─── */
 async function store(key, val) {
