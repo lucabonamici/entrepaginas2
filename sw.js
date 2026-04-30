@@ -77,8 +77,8 @@ async function sendHighlight() {
 
   return self.registration.showNotification(title, {
     body,
-    icon:     '/icon-192.png',
-    badge:    '/icon-72.png',
+    icon:     './icon-192.png',
+    badge:    './icon-72.png',
     tag:      'ep-daily',
     renotify: true,
     vibrate:  [200, 100, 200],
