@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;0,700;1,300;1,500&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet" />
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Entre Páginas" />
   <meta name="theme-color" content="#92400E" />
@@ -1608,9 +1608,20 @@ if (FB_READY) {
   try {
     const app = firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
-    firebase.analytics();                                   /* enable Analytics */
-    db.enablePersistence({ synchronizeTabs: true }).catch(() => {}); /* offline cache */
-  } catch(e) { console.warn('Firebase init error:', e); }
+    firebase.analytics();
+    db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence: multiple tabs open');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence: not supported in this browser');
+      }
+    });
+  } catch(e) {
+    console.warn('Firebase init error:', e);
+    if (e.code === 'permission-denied') {
+      console.error('Firebase: Enable Firestore API in your project');
+    }
+  }
 }
 
 function setSyncStatus(state) {             /* 'idle'|'syncing'|'synced'|'error'|'offline' */
@@ -1675,13 +1686,18 @@ async function deleteFromFirestore(bookId) {
 }
 
 async function loadBooksFromFirestore() {
-  if (!db) return false;
+  if (!db) {
+    console.warn('[FB] db not initialized');
+    return false;
+  }
   try {
     setSyncStatus('syncing');
+    console.log('[FB] Carregando livros do Firestore...');
     const snap = await db.collection('books').get();
-    /* ✅ If we reach here, connection is working */
+    console.log('[FB] ✅ Conectado! Livros encontrados:', snap.docs.length);
     toast('🟢 Firebase ligado e sincronizado', 'success');
     if (snap.empty) {
+      console.log('[FB] Firestore vazio. Enviando livros do localStorage...');
       /* Firestore empty — push localStorage books up if any */
       if (state.books.length > 0) scheduleSyncToFirestore();
       setSyncStatus('synced');
