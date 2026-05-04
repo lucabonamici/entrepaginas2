@@ -1652,24 +1652,34 @@ function showFirebaseHelp() {
 /* ─── Firestore helpers ─── */
 let _syncTimer = null;
 function scheduleSyncToFirestore() {
-  if (!db) return;
+  if (!db) {
+    console.warn('[SYNC-UP] ❌ db não inicializado - não pode sincronizar');
+    return;
+  }
   clearTimeout(_syncTimer);
   setSyncStatus('syncing');
+  console.log('[SYNC-UP] ⏱️ Agendando sincronização em 1.2s com', state.books.length, 'livros');
   _syncTimer = setTimeout(async () => {
     try {
       /* Firestore batch limit = 500 ops; chunk if needed */
       const books = state.books;
+      console.log('[SYNC-UP] 📤 Enviando', books.length, 'livros para Firestore...');
       for (let i = 0; i < books.length; i += 400) {
         const batch = db.batch();
-        books.slice(i, i + 400).forEach(b => {
+        const chunk = books.slice(i, i + 400);
+        console.log('[SYNC-UP] 📦 Enviando chunk de', chunk.length, 'livros');
+        chunk.forEach(b => {
           batch.set(db.collection('books').doc(b.id), prepForFirestore(b));
         });
         await batch.commit();
+        console.log('[SYNC-UP] ✅ Chunk enviado com sucesso');
       }
       setSyncStatus('synced');
+      console.log('[SYNC-UP] ✅ Todos os livros foram sincronizados com sucesso!');
       setTimeout(() => setSyncStatus('idle'), 3000);
     } catch(e) {
-      console.error('Firestore sync failed:', e);
+      console.error('[SYNC-UP] ❌ Firestore sync failed:', e);
+      console.error('[SYNC-UP] Código do erro:', e.code);
       setSyncStatus('error');
     }
   }, 1200);
@@ -2033,6 +2043,11 @@ function setFilter(f) {
 
 function renderLibrary() {
   console.log('[RENDER] 🎨 renderLibrary() chamada com', state.books.length, 'livros');
+  if (state.books.length === 0) {
+    console.warn('[RENDER] ⚠️ AVISO: renderLibrary chamada com 0 livros!');
+  } else {
+    console.log('[RENDER] ✅ Renderizando', state.books.length, 'livros');
+  }
   const counts = { all: state.books.length, want: 0, reading: 0, finished: 0 };
   state.books.forEach(b => counts[b.status]++);
   document.getElementById('count-all').textContent      = counts.all;
