@@ -1740,9 +1740,13 @@ async function loadBooksFromFirestore() {
 let _realtimeSyncSetup = false;
 
 function setupRealtimeSync() {
-  if (!db || _realtimeSyncSetup) return;
+  if (!db || _realtimeSyncSetup) {
+    console.log('[SYNC] ⚠️ Listener já configurado ou db não existe');
+    return;
+  }
   _realtimeSyncSetup = true;
-  console.log('[SYNC] Iniciando listener em tempo real...');
+  console.log('[SYNC] 🎧 Iniciando listener em tempo real...');
+  toast('🎧 Sincronização em tempo real ativada', 'info');
   try {
     db.collection('books').onSnapshot(
       snap => {
@@ -1764,8 +1768,20 @@ function setupRealtimeSync() {
           localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
           console.log('[SYNC] Estado atualizado. Antes:', oldCount, 'Agora:', remote.length);
           if (remote.length !== oldCount) {
-            renderLibrary();
-            if (state.view === 'stats') renderStats();
+            console.log('[SYNC] Renderizando biblioteca com', remote.length, 'livros...');
+            try {
+              renderLibrary();
+              console.log('[SYNC] ✅ renderLibrary() executada com sucesso');
+            } catch (renderErr) {
+              console.error('[SYNC] ❌ Erro ao renderizar biblioteca:', renderErr);
+            }
+            if (state.view === 'stats') {
+              try {
+                renderStats();
+              } catch (e) {
+                console.error('[SYNC] Erro ao renderizar stats:', e);
+              }
+            }
             if (remote.length > oldCount) {
               console.log('[SYNC] ✅ Novo livro sincronizado!');
               toast(`📚 Novo livro sincronizado!`, 'success');
