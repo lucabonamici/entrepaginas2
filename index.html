@@ -1764,8 +1764,10 @@ function setupRealtimeSync() {
           console.log('[SYNC] 📡 Snapshot recebido com', snap.docs.length, 'livros');
           console.log('[SYNC] snap.docs:', snap.docs);
           console.log('[SYNC] snap.empty:', snap.empty);
+          toast(`📡 Listener recebeu ${snap.docs.length} livros do Firestore`, 'info');
           if (snap.empty) {
             console.log('[SYNC] ⚠️ Firestore está vazio - nenhum livro para sincronizar');
+            toast('📭 Firestore vazio - nenhum livro encontrado', 'warning');
             return;
           }
           const remote = snap.docs.map(d => {
@@ -2045,8 +2047,10 @@ function renderLibrary() {
   console.log('[RENDER] 🎨 renderLibrary() chamada com', state.books.length, 'livros');
   if (state.books.length === 0) {
     console.warn('[RENDER] ⚠️ AVISO: renderLibrary chamada com 0 livros!');
+    toast('⚠️ Biblioteca vazia - nenhum livro para renderizar', 'warning');
   } else {
     console.log('[RENDER] ✅ Renderizando', state.books.length, 'livros');
+    toast(`📚 Renderizando ${state.books.length} livros...`, 'info');
   }
   const counts = { all: state.books.length, want: 0, reading: 0, finished: 0 };
   state.books.forEach(b => counts[b.status]++);
