@@ -1751,7 +1751,13 @@ function setupRealtimeSync() {
     db.collection('books').onSnapshot(
       snap => {
         try {
-          console.log('[SYNC] Snapshot recebido com', snap.docs.length, 'livros');
+          console.log('[SYNC] 📡 Snapshot recebido com', snap.docs.length, 'livros');
+          console.log('[SYNC] snap.docs:', snap.docs);
+          console.log('[SYNC] snap.empty:', snap.empty);
+          if (snap.empty) {
+            console.log('[SYNC] ⚠️ Firestore está vazio - nenhum livro para sincronizar');
+            return;
+          }
           const remote = snap.docs.map(d => {
             const data = d.data();
             if (!data.highlights) data.highlights = [];
@@ -1764,8 +1770,11 @@ function setupRealtimeSync() {
           });
           remote.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0));
           const oldCount = state.books.length;
+          console.log('[SYNC] 🔄 Atualizando state.books de', oldCount, 'para', remote.length);
           state.books = remote;
+          console.log('[SYNC] ✅ state.books agora tem:', state.books.length, 'livros');
           localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
+          console.log('[SYNC] 💾 Salvou no localStorage');
           console.log('[SYNC] Estado atualizado. Antes:', oldCount, 'Agora:', remote.length);
           if (remote.length !== oldCount) {
             console.log('[SYNC] Renderizando biblioteca com', remote.length, 'livros...');
@@ -2023,6 +2032,7 @@ function setFilter(f) {
 }
 
 function renderLibrary() {
+  console.log('[RENDER] 🎨 renderLibrary() chamada com', state.books.length, 'livros');
   const counts = { all: state.books.length, want: 0, reading: 0, finished: 0 };
   state.books.forEach(b => counts[b.status]++);
   document.getElementById('count-all').textContent      = counts.all;
