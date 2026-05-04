@@ -2753,7 +2753,7 @@ if ('serviceWorker' in navigator) {
 /* ─── Collect all highlights across all books ─── */
 function getAllHighlightsForSW() {
   const all = [];
-  books.forEach(b => {
+  state.books.forEach(b => {
     if (!b.highlights?.length) return;
     b.highlights.forEach(h => {
       const hl = normalizeHL(h);
