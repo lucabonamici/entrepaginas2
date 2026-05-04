@@ -1687,17 +1687,17 @@ async function deleteFromFirestore(bookId) {
 
 async function loadBooksFromFirestore() {
   if (!db) {
-    console.warn('[FB] db not initialized');
+    console.warn('[FB] ❌ db não inicializado! Firebase não está pronto.');
     return false;
   }
   try {
     setSyncStatus('syncing');
-    console.log('[FB] Carregando livros do Firestore...');
+    console.log('[FB] 📚 Carregando livros do Firestore... aguarde');
     const snap = await db.collection('books').get();
     console.log('[FB] ✅ Conectado! Livros encontrados:', snap.docs.length);
     toast('🟢 Firebase ligado e sincronizado', 'success');
     if (snap.empty) {
-      console.log('[FB] Firestore vazio. Enviando livros do localStorage...');
+      console.log('[FB] 📭 Firestore vazio. Enviando livros do localStorage se houver...');
       /* Firestore empty — push localStorage books up if any */
       if (state.books.length > 0) scheduleSyncToFirestore();
       setSyncStatus('synced');
@@ -1714,15 +1714,25 @@ async function loadBooksFromFirestore() {
       return data;
     });
     remote.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0));
+    console.log('[FB] 🔄 Atualizando estado local com', remote.length, 'livros do Firestore');
     state.books = remote;
     localStorage.setItem('bookshelf_books', JSON.stringify(state.books));
     setSyncStatus('synced');
     setTimeout(() => setSyncStatus('idle'), 3000);
+    console.log('[FB] 🎧 Configurando listener em tempo real...');
     setupRealtimeSync();
     return true;
   } catch(e) {
-    console.error('Firestore load failed:', e);
+    console.error('[FB] ❌ Firestore load failed:', e);
+    console.error('[FB] Detalhes do erro:', e.code, e.message);
     setSyncStatus('error');
+    if (e.code === 'permission-denied') {
+      toast('❌ Sem permissão no Firestore', 'error');
+    } else if (e.code === 'failed-precondition') {
+      toast('⚠️ Firestore não está pronto', 'warning');
+    } else {
+      toast('❌ Erro ao conectar Firestore', 'error');
+    }
     return false;
   }
 }
@@ -1793,6 +1803,10 @@ let state = {
 };
 
 function loadState() {
+  console.log('[INIT] Iniciando carregamento de estado...');
+  console.log('[INIT] Firebase configurado?', FB_READY);
+  console.log('[INIT] db objeto existe?', !!db);
+
   /* 1 — instant load from localStorage */
   try {
     const saved = localStorage.getItem('bookshelf_books');
@@ -1806,19 +1820,28 @@ function loadState() {
             : h
         );
       });
+      console.log('[INIT] Carregados', state.books.length, 'livros do localStorage');
     }
     const theme = localStorage.getItem('bookshelf_theme');
     if (theme === 'dark') { state.dark = true; applyTheme(); }
-  } catch(e) {}
+  } catch(e) { console.error('[INIT] Erro ao carregar localStorage:', e); }
 
   /* 2 — show setup banner if Firebase not configured */
   if (!FB_READY) {
+    console.warn('[INIT] Firebase NÃO está configurado - mostrando banner');
     const banner = document.getElementById('firebase-banner');
     if (banner) banner.style.display = 'flex';
   } else {
     /* 3 — async: load from Firestore, refresh UI when done */
+    console.log('[INIT] Firebase configurado - carregando do Firestore...');
     loadBooksFromFirestore().then(loaded => {
-      if (loaded) { renderLibrary(); if (state.view === 'stats') renderStats(); }
+      console.log('[INIT] Firestore load retornou:', loaded);
+      if (loaded) {
+        renderLibrary();
+        if (state.view === 'stats') renderStats();
+      }
+    }).catch(err => {
+      console.error('[INIT] Erro ao carregar Firestore:', err);
     });
   }
 }
